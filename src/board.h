@@ -43,7 +43,7 @@ public:
      * @return Index of the bit.
      * Requires: bit must contain only a singular bit. Will throw exception otherwise.
      */
-    inline static int toIndex(int bit);
+    inline static long long toIndex(long long bit);
 
     /**
      * Returns current turn of the board. 0 for white and 1 for black.

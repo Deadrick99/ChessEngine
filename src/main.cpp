@@ -1,6 +1,7 @@
 #include <iostream>
+#include "board.h"
 
 int main() {
-    std::cout << "hello world\n";
+    std::cout << chess::board::toBit(7, 2);
     return 0;
 }
