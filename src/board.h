@@ -50,6 +50,11 @@ public:
      */
     [[nodiscard]] int get_turn() const { return turn; }
 
+    /**
+     * Prints out the board using ASCII characters.
+     */
+    void print_board() const;
+
     const long long& operator[](const int i) const { return boardRep[i]; }
     using const_iterator = const long long*;
     [[nodiscard]] const_iterator begin() const { return boardRep; }
@@ -57,7 +62,7 @@ public:
 private:
     long long boardRep[12] = {};
     int turn = 0;
-    int castlingRights = 0;
+    int castlingRights[2] = {0, 0};
     long long enPassant = 0;
 };
 }

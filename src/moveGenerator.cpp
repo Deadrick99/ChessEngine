@@ -1,4 +1,7 @@
 #include "moveGenerator.h"
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
 namespace chess {
     moveGenerator::MoveGenFunc moveGenerator::moveGenerators[6] = {
@@ -10,15 +13,66 @@ namespace chess {
         generate_moves_king
     };
 
+    void moveGenerator::load_bishop_magic_table(const std::string& path) {
+        std::ifstream file(path);
+        if (!file.is_open()) {
+            std::cerr << "Could not open bishop magic table: " << path << std::endl;
+            return;
+        }
+
+        std::string line;
+        int i = 0;
+        while (std::getline(file, line) && i < 5248) {
+            std::istringstream iss(line);
+            if (!(iss >> bishop_table[i])) {
+                std::cerr << "Invalid value at line " << i << ": " << line << std::endl;
+                break;
+            }
+            ++i;
+        }
+
+        if (i != 5248) {
+            std::cerr << "Warning: Expected 5248 entries but got " << i << std::endl;
+        } else {
+            std::cout << "Bishop magic table loaded successfully." << std::endl;
+        }
+    }
+
+    void chess::moveGenerator::load_rook_magic_table(const std::string& path) {
+        std::ifstream file(path);
+        if (!file.is_open()) {
+            std::cerr << "Could not open rook magic table: " << path << std::endl;
+            return;
+        }
+
+        std::string line;
+        int i = 0;
+        while (std::getline(file, line) && i < 102400) {
+            std::istringstream iss(line);
+            if (!(iss >> rook_table[i])) {
+                std::cerr << "Invalid value at line " << i << ": " << line << std::endl;
+                break;
+            }
+            ++i;
+        }
+
+        if (i != 102400) {
+            std::cerr << "Warning: Expected 102400 entries but got " << i << std::endl;
+        } else {
+            std::cout << "Rook magic table loaded successfully." << std::endl;
+        }
+    }
+
     long long* moveGenerator::generate_moves(const board& Board) {
         long long oppMask = 0;
         long long friendMask = 0;
         long long targetMask = 0;
+        int castlingRights = 0;
         for(int i = Board.get_turn(); i < 12; i+=2) {
             long long bitBoard = Board[i];
             while(bitBoard != 0) {
                 long long piece = bitBoard & -bitBoard;
-                long long moves = moveGenerators[1](piece, oppMask, friendMask, targetMask);
+                long long moves = moveGenerators[1](piece, oppMask, friendMask, targetMask, castlingRights);
                 while(moves != 0) {
 
                     moves &= moves - 1;
@@ -29,15 +83,15 @@ namespace chess {
         return nullptr;
     }
 
-    long long moveGenerator::generate_moves_pawn(long long bit, long long oppMask, long long friendMask, long long targetMask) {
+    long long moveGenerator::generate_moves_pawn(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
         throw std::runtime_error("Not implemented");
     }
 
-    long long moveGenerator::generate_moves_knight(long long bit, long long oppMask, long long friendMask, long long targetMask) {
+    long long moveGenerator::generate_moves_knight(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
         return knight_table[board::toIndex(bit)] && targetMask;
     }
 
-    long long moveGenerator::generate_moves_bishop(long long bit, long long oppMask, long long friendMask, long long targetMask) {
+    long long moveGenerator::generate_moves_bishop(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
         const long long index = board::toIndex(bit);
         const long long allSquares = friendMask | oppMask;
         const long long blockerSquares = allSquares & bishop_masks[index];
@@ -48,7 +102,7 @@ namespace chess {
         return movesBitboard & targetMask;
     }
 
-    long long moveGenerator::generate_moves_rook(long long bit, long long oppMask, long long friendMask, long long targetMask) {
+    long long moveGenerator::generate_moves_rook(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
         const long long index = board::toIndex(bit);
         const long long allSquares = friendMask | oppMask;
         const long long blockerSquares = allSquares & rook_masks[index];
@@ -59,14 +113,23 @@ namespace chess {
         return movesBitboard & targetMask;
     }
 
-    long long moveGenerator::generate_moves_queen(long long bit, long long oppMask, long long friendMask, long long targetMask) {
-        const long long bishop_mask = generate_moves_bishop(bit, oppMask, friendMask, targetMask);
-        const long long rook_mask = generate_moves_rook(bit, oppMask, friendMask, targetMask);
+    long long moveGenerator::generate_moves_queen(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
+        const long long bishop_mask = generate_moves_bishop(bit, oppMask, friendMask, targetMask, castlingRights);
+        const long long rook_mask = generate_moves_rook(bit, oppMask, friendMask, targetMask, castlingRights);
         return bishop_mask || rook_mask;
     }
 
-    long long moveGenerator::generate_moves_king(long long bit, long long oppMask, long long friendMask, long long targetMask) {
-        throw std::runtime_error("Not implemented");
+    long long moveGenerator::generate_moves_king(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
+        const long long index = board::toIndex(bit);
+        long long king_mask = king_table[index];
+
+        long long allSquares = friendMask | oppMask;
+
+        int turn = castlingRights >= 3 ? 0 : 1;
+        if ((allSquares & castle_free[turn][0]) == 0 && castlingRights >= 1) king_mask |= castle_free[turn][0];
+        if ((allSquares & castle_free[turn][1]) == 0 && castlingRights >= 2) king_mask |= castle_free[turn][1];
+
+        return king_mask;
     }
 }
 

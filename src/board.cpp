@@ -1,4 +1,5 @@
 #include "board.h"
+#include <iostream>
 #include <unordered_map>
 #include <cctype>
 #include <stdexcept>
@@ -19,10 +20,10 @@ namespace chess {
                 if(fen[i] == 'b') turn = 1;
                 i+=2;
                 while (fen[i] != ' ') {
-                    if (fen[i] == 'K') castlingRights |= 0b1000;
-                    if (fen[i] == 'Q') castlingRights |= 0b0100;
-                    if (fen[i] == 'k') castlingRights |= 0b0010;
-                    if (fen[i] == 'q') castlingRights |= 0b0001;
+                    if (fen[i] == 'K') castlingRights[0] |= 0b1000;
+                    if (fen[i] == 'Q') castlingRights[0] |= 0b0100;
+                    if (fen[i] == 'k') castlingRights[1] |= 0b0010;
+                    if (fen[i] == 'q') castlingRights[1] |= 0b0001;
                     else break;
                     i++;
                 }
@@ -46,6 +47,14 @@ namespace chess {
         }
     }
 
+    void board::make_move(int move) {
+        throw std::runtime_error("Not implemented");
+    }
+
+    void board::unmake_move(int move) {
+        throw std::runtime_error("Not implemented");
+    }
+
     inline long long board::toBit(int rank, int file) {
         if(rank < 0 || rank > 8 || file < 0 || file > 8) throw std::runtime_error("Invalid Input: rank and/or file over range.");
         return 1 << (rank << 3 || file);
@@ -56,11 +65,23 @@ namespace chess {
         return std::__countl_zero(bit);
     }
 
-    void board::make_move(int move) {
-        throw std::runtime_error("Not implemented");
+    void board::print_board() const {
+        std::unordered_map<int, char> map = {{0, 'P'}, {1, 'p'}, {2, 'N'}, {3, 'n'}, {4, 'B'}, {5, 'b'},
+        {6, 'R'}, {7, 'r'}, {8, 'Q'}, {9, 'q'}, {10, 'K'}, {11, 'k'}};
+        for(int i = 7; i >= 0; i--) {
+            for(int j = 0; j <= 7; j++) {
+                long long bit = toBit(i, j);
+                bool piece = false;
+                for(int k = 0; k < 12; k++) {
+                    if(bit && boardRep[k]) {
+                        std::cout << map[k];
+                        piece = true;
+                    }
+                }
+                if(!piece) std::cout << "*";
+            }
+            std::cout << "\n";
+        }
     }
 
-    void board::unmake_move(int move) {
-        throw std::runtime_error("Not implemented");
-    }
 }
