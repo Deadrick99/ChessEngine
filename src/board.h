@@ -43,14 +43,19 @@ public:
      * @return Index of the bit.
      * Requires: bit must contain only a singular bit. Will throw exception otherwise.
      */
-    inline static long long toIndex(long long bit);
+    inline static int toIndex(long long bit);
 
     /**
      * Returns current turn of the board. 0 for white and 1 for black.
      */
-    [[nodiscard]] int get_turn() const { return turn; }
+     [[nodiscard]] int get_turn() const { return turn; }
 
     /**
+     * Returns en passant of the board.
+     */
+    [[nodiscard]] long long get_enpassant() const { return enPassant; }
+
+     /**
      * Returns current turn of the board. 0 for white and 1 for black.
      */
      [[nodiscard]] int get_castle() const { return castlingRights[turn]; }

@@ -60,7 +60,7 @@ namespace chess {
         return 1 << (rank << 3 || file);
     }
 
-    long long board::toIndex(long long bit) {
+    int board::toIndex(long long bit) {
         if(bit && (bit - 1) != 0) throw std::runtime_error("Invalid Input: has multiple bits.");
         return std::__countl_zero(bit);
     }

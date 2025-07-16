@@ -1,4 +1,5 @@
 #include "moveGenerator.h"
+#include "board.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -63,23 +64,21 @@ namespace chess {
         }
     }
 
-    void moveGenerator::generate_moves(const board& Board, bool captures, long long* output) {
+    void moveGenerator::generate_moves(const board& Board, bool captures, int* output) {
         const int turn = Board.get_turn();
         const int opp_turn = turn ^ 0b1;
         const long long oppMask = Board[opp_turn] ^ Board[opp_turn + 2] ^  Board[opp_turn + 4] ^ Board[opp_turn + 6] ^ Board[opp_turn + 8] ^  Board[opp_turn + 10];;
         const long long friendMask = Board[turn] ^ Board[turn + 2] ^  Board[turn + 4] ^ Board[turn + 6] ^ Board[turn + 8] ^  Board[turn + 10];
         const long long targetMask = captures ? oppMask : -1;
         const int castlingRights = Board.get_castle();
-        int index = 0;
         for(int i = Board.get_turn(); i < 12; i+=2) {
             long long bitBoard = Board[i];
             while(bitBoard != 0) {
-                long long piece = bitBoard & -bitBoard;
+                const long long piece = bitBoard & -bitBoard;
                 long long moves = moveGenerators[(i - Board.get_turn())/2](piece, oppMask, friendMask, targetMask, castlingRights);
                 while(moves != 0) {
                     const long long pos = moves & - moves;
-                    output[index] = make_move(piece, pos);
-                    index++;
+                    make_move(piece, pos, Board, output);
                     moves &= moves - 1;
                 }
                 bitBoard &= bitBoard - 1;
@@ -87,8 +86,33 @@ namespace chess {
         }
     }
 
-    static int make_move(long long pos1, long long pos2) {
-        return 0;
+    void moveGenerator::make_move(long long pos1, long long pos2, const board& Board, int* output) {
+        const int from = board::toIndex(pos1);
+        const int to = board::toIndex(pos2);
+        const int base = from | (to << 6);
+
+        //promotion && enpassant
+        if(pos1 && Board[Board.get_turn()] != 0) {
+            if(from & 0b111 != 0) {
+                int promotion[] = {0b100000000000000, 0b101000000000000, 0b110000000000000, 0b111000000000000};
+                for(const int bit : promotion) {
+                    *output = base | bit;
+                    output++;
+                }
+            } else if(to && Board.get_enpassant() != 0) {
+                *output = base | 0b1000000000000000;
+                output++;
+            } else {
+                *output = base;
+                output++;
+            }
+        }
+
+        //castling
+        if(pos1 && Board[Board.get_turn() + 10] != 0 && pos2 && Board[Board.get_turn() + 6]) {
+            *output = base | 0b1100000000000000;
+            output++;
+        }
     }
 
     long long moveGenerator::generate_moves_pawn(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
@@ -100,7 +124,7 @@ namespace chess {
     }
 
     long long moveGenerator::generate_moves_bishop(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
-        const long long index = board::toIndex(bit);
+        const int index = board::toIndex(bit);
         const long long allSquares = friendMask | oppMask;
         const long long blockerSquares = allSquares & bishop_masks[index];
 
@@ -111,7 +135,7 @@ namespace chess {
     }
 
     long long moveGenerator::generate_moves_rook(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
-        const long long index = board::toIndex(bit);
+        const int index = board::toIndex(bit);
         const long long allSquares = friendMask | oppMask;
         const long long blockerSquares = allSquares & rook_masks[index];
 
@@ -128,7 +152,7 @@ namespace chess {
     }
 
     long long moveGenerator::generate_moves_king(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
-        const long long index = board::toIndex(bit);
+        const int index = board::toIndex(bit);
         long long king_mask = king_table[index];
 
         long long allSquares = friendMask | oppMask;
