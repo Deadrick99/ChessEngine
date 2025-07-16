@@ -63,24 +63,32 @@ namespace chess {
         }
     }
 
-    long long* moveGenerator::generate_moves(const board& Board) {
-        long long oppMask = 0;
-        long long friendMask = 0;
-        long long targetMask = 0;
-        int castlingRights = 0;
+    void moveGenerator::generate_moves(const board& Board, bool captures, long long* output) {
+        const int turn = Board.get_turn();
+        const int opp_turn = turn ^ 0b1;
+        const long long oppMask = Board[opp_turn] ^ Board[opp_turn + 2] ^  Board[opp_turn + 4] ^ Board[opp_turn + 6] ^ Board[opp_turn + 8] ^  Board[opp_turn + 10];;
+        const long long friendMask = Board[turn] ^ Board[turn + 2] ^  Board[turn + 4] ^ Board[turn + 6] ^ Board[turn + 8] ^  Board[turn + 10];
+        const long long targetMask = captures ? oppMask : -1;
+        const int castlingRights = Board.get_castle();
+        int index = 0;
         for(int i = Board.get_turn(); i < 12; i+=2) {
             long long bitBoard = Board[i];
             while(bitBoard != 0) {
                 long long piece = bitBoard & -bitBoard;
-                long long moves = moveGenerators[1](piece, oppMask, friendMask, targetMask, castlingRights);
+                long long moves = moveGenerators[(i - Board.get_turn())/2](piece, oppMask, friendMask, targetMask, castlingRights);
                 while(moves != 0) {
-
+                    const long long pos = moves & - moves;
+                    output[index] = make_move(piece, pos);
+                    index++;
                     moves &= moves - 1;
                 }
                 bitBoard &= bitBoard - 1;
             }
         }
-        return nullptr;
+    }
+
+    static int make_move(long long pos1, long long pos2) {
+        return 0;
     }
 
     long long moveGenerator::generate_moves_pawn(long long bit, long long oppMask, long long friendMask, long long targetMask, int castlingRights) {
@@ -126,6 +134,7 @@ namespace chess {
         long long allSquares = friendMask | oppMask;
 
         int turn = castlingRights >= 3 ? 0 : 1;
+        if(turn == 0) castlingRights >>= 2;
         if ((allSquares & castle_free[turn][0]) == 0 && castlingRights >= 1) king_mask |= castle_free[turn][0];
         if ((allSquares & castle_free[turn][1]) == 0 && castlingRights >= 2) king_mask |= castle_free[turn][1];
 

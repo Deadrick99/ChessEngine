@@ -51,6 +51,11 @@ public:
     [[nodiscard]] int get_turn() const { return turn; }
 
     /**
+     * Returns current turn of the board. 0 for white and 1 for black.
+     */
+     [[nodiscard]] int get_castle() const { return castlingRights[turn]; }
+
+    /**
      * Prints out the board using ASCII characters.
      */
     void print_board() const;
